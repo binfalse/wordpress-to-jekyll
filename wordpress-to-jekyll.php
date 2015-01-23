@@ -20,7 +20,7 @@ class WordpressToJekyll {
 
 	protected $_yaml;
 
-	public function __construct($wordpress_xml_file, YamlDumperInterface $yaml, $posts, $pages, $attachments, $draft_posts, $draft_pages)
+	public function __construct($wordpress_xml_file, YamlDumperInterface $yaml, $posts, $pages, $attachments, $draft_posts, $draft_pages, $comments, $draft_comments)
 	{
 		$this->_export_file = $wordpress_xml_file;
 
@@ -33,6 +33,8 @@ class WordpressToJekyll {
 		$this->_attachments_dir = rtrim($attachments, '/');
 		$this->_draft_post_dir = rtrim($draft_posts, '/');
 		$this->_draft_pages_dir = rtrim($draft_pages, '/');
+		$this->_comments_dir = rtrim($comments, '/');
+		$this->_draft_comments_dir = rtrim($draft_comments, '/');
 	}
 
 	protected function _setup_dirs()
@@ -43,9 +45,13 @@ class WordpressToJekyll {
 			return FALSE;
 		if ( ! file_exists($this->_attachments_dir) && ! mkdir($this->_attachments_dir))
 			return FALSE;
+		if ( ! file_exists($this->_comments_dir) && ! mkdir($this->_comments_dir))
+			return FALSE;
 		if ( ! file_exists($this->_draft_post_dir) && ! mkdir($this->_draft_post_dir))
 			return FALSE;
 		if ( ! file_exists($this->_draft_pages_dir) && ! mkdir($this->_draft_pages_dir))
+			return FALSE;
+		if ( ! file_exists($this->_draft_comments_dir) && ! mkdir($this->_draft_comments_dir))
 			return FALSE;
 		
 
@@ -68,6 +74,8 @@ class WordpressToJekyll {
 					$post = $this->_post_array($item);
 					$formatted_post = $this->_format_post($post);
 					$this->_write_post($post, $formatted_post);
+					if (count ($post["comments"]))
+						$this->_write_comments($post["comments"], $post['post_id']);
 					break;
 				case "page":
 					$page = $this->_pages_array($item);
@@ -86,6 +94,9 @@ class WordpressToJekyll {
 			$path = $this->_get_page_path ($page, $pages);
 			$formatted_page = $this->_format_post($page);
 			$this->_write_page($page, $path, $formatted_page);
+			$page['post_id'] = "/".$path;
+			if (count ($page["comments"]))
+				$this->_write_comments($page["comments"], $page['post_id']);
 		}
 	}
 	
@@ -105,7 +116,7 @@ class WordpressToJekyll {
 	
 	protected function _jekyll_tags ($tagname)
 	{
-		return preg_replace ("/[^A-Za-z0-9 ]/", '', $tagname);
+		return preg_replace ("/[^A-Za-z0-9]/", '', $tagname);
 	}
 	
 	protected function _process_attachment($item)
@@ -137,6 +148,25 @@ class WordpressToJekyll {
 		return $content;
 	}
 	
+	protected function _process_comments ($comments)
+	{
+		$c = array ();
+		foreach ($comments as $comment)
+		{
+			$cur = array ();
+			$cur["meta"]["name"] = (string) $comment->comment_author;
+			// we do not include mail addresses $cur["meta"]["comment_author_email"] = (string)$comment->comment_author_email;
+			$cur["meta"]["link"] = (string)$comment->comment_author_url;
+			$cur["meta"]["date"] = (string)$comment->comment_date;
+			$cur["meta"]["comment"] = (string)$comment->comment_content;
+			$cur["comment_approved"] = (string)$comment->comment_approved;
+			$cur["content"] = "";
+			$c[] = $cur;
+		}
+		return $c;
+	}
+	
+	
 	protected function _pages_array($item)
 	{
 		$page = array();
@@ -147,6 +177,7 @@ class WordpressToJekyll {
 		
 		$page['filename'] = $wp->post_name;
 		$page['id'] = $wp->post_id;
+		$page['comments'] = $this->_process_comments ($wp->comment);
 		$page['parent'] = $wp->post_parent;
 		$page['meta']['layout'] = $this->_layout_page;
 		
@@ -195,8 +226,11 @@ class WordpressToJekyll {
 			date('Y-m-d', strtotime($wp->post_date)),
 			$wp->post_name
 		);
-		//if ($post['filename'] != "2015-01-18-gem-installation-fails-update-gcc.md")
-		//	return;
+		$post['comments'] = $this->_process_comments ($wp->comment);
+		$post['post_id'] = sprintf('%s/%s',
+			date('Y/m/d', strtotime($wp->post_date)),
+			$wp->post_name
+		);
 
 		$post['meta']['layout'] = $this->_layout_post;
 
@@ -267,6 +301,27 @@ EOT;
 		}
 		return file_put_contents($directory.'/index.html', $formatted);
 	}
+	
+	protected function _write_comments ($comments, $post_id)
+	{
+		foreach ($comments as $comment)
+		{
+			$comment["meta"]["post_id"] = $post_id;
+			$formatted = $this->_format_post($comment);
+			$comment_file = $post_id."-".preg_replace ("/[^A-Za-z0-9]/", '-', $comment["meta"]["date"]).".md";
+			$target = $this->_comments_dir.'/'.$comment_file;
+			if ($comment["comment_approved"] == 0)
+				$target = $this->_draft_comments_dir.'/'.$comment_file;
+			$directory = dirname ($target);
+			if ( ! file_exists($directory) && ! mkdir($directory, 0777, true))
+			{
+				echo "error creating dir ".$directory."\n";
+				return;
+			}
+			
+			file_put_contents($target, $formatted);
+		}
+	}
 
 	protected function _write_attachment($attachment_link)
 	{
@@ -322,6 +377,8 @@ $pages = (isset($argv[3])) ? $argv[3] : getcwd().'/pages';
 $attachments = (isset($argv[4])) ? $argv[4] : getcwd().'/attachments';
 $draft_posts = (isset($argv[5])) ? $argv[5] : getcwd().'/draft_posts';
 $draft_pages = (isset($argv[6])) ? $argv[6] : getcwd().'/draft_pages';
+$comments = (isset($argv[7])) ? $argv[7] : getcwd().'/comments';
+$draft_comments = (isset($argv[7])) ? $argv[7] : getcwd().'/draft_comments';
 
-$convert = new WordpressToJekyll($file, new YamlDumper, $posts, $pages, $attachments, $draft_posts, $draft_pages);
+$convert = new WordpressToJekyll($file, new YamlDumper, $posts, $pages, $attachments, $draft_posts, $draft_pages, $comments, $draft_comments);
 $convert->convert();
