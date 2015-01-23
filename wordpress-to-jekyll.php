@@ -280,6 +280,11 @@ EOT;
 			return;
 		}
 		//return;
+		if (file_exists ($target))
+		{
+			echo $target . " exists - skipping\n";
+			return;
+		}
 		return file_put_contents($target, fopen($attachment_link, 'r'));
 	}
 
