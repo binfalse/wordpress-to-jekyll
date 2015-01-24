@@ -1,5 +1,12 @@
 <?php
 
+$blogurls = array (
+	"http://binfalse.de",
+	"http://blog.binfalse.de",
+	"https://binfalse.de",
+	"https://blog.binfalse.de"
+	);
+
 /**
  * Wordpress to Jekyll
  *
@@ -17,14 +24,16 @@ class WordpressToJekyll {
 	protected $_layout_page = 'page';
 
 	protected $_items;
+	protected $_blogurls;
 
 	protected $_yaml;
 
-	public function __construct($wordpress_xml_file, YamlDumperInterface $yaml, $posts, $pages, $attachments, $draft_posts, $draft_pages, $comments, $draft_comments)
+	public function __construct($wordpress_xml_file, YamlDumperInterface $yaml, $posts, $pages, $attachments, $draft_posts, $draft_pages, $comments, $draft_comments, $blogurls)
 	{
 		$this->_export_file = $wordpress_xml_file;
 
 		$this->_load_items();
+		$this->_blogurls = $blogurls;
 
 		$this->_yaml = $yaml;
 		
@@ -130,6 +139,10 @@ class WordpressToJekyll {
 	
 	protected function _process_content ($content)
 	{
+	
+		# site specific stuff
+		$content = str_replace ($this->_blogurls, "{{ site.url }}", $content);
+		
 		$content = str_replace("\\", '\\\\', $content);
 		$content = str_replace("<!--more-->", '', $content);
 		# codecolorer
@@ -146,6 +159,10 @@ class WordpressToJekyll {
 				$code = preg_replace ("/^/m", "    ", $code);
 				$content = str_replace($m, "\n\n".$code."\n\n", $content);
 			}
+		
+		# latex
+		
+		
 		
 		return $content;
 	}
@@ -383,5 +400,6 @@ $draft_pages = (isset($argv[6])) ? $argv[6] : getcwd().'/draft_pages';
 $comments = (isset($argv[7])) ? $argv[7] : getcwd().'/comments';
 $draft_comments = (isset($argv[7])) ? $argv[7] : getcwd().'/draft_comments';
 
-$convert = new WordpressToJekyll($file, new YamlDumper, $posts, $pages, $attachments, $draft_posts, $draft_pages, $comments, $draft_comments);
+
+$convert = new WordpressToJekyll($file, new YamlDumper, $posts, $pages, $attachments, $draft_posts, $draft_pages, $comments, $draft_comments, $blogurls);
 $convert->convert();
