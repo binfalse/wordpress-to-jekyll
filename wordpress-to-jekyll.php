@@ -130,20 +130,22 @@ class WordpressToJekyll {
 	
 	protected function _process_content ($content)
 	{
+		$content = str_replace("\\", '\\\\', $content);
 		$content = str_replace("<!--more-->", '', $content);
 		# codecolorer
 		$content = str_replace("[cci]", '`', $content);
 		$content = str_replace("[/cci]", '`', $content);
 		# multiline code
-		preg_match('@\[cc[^\]]*\].*\[\/cc\]@is', $content, $matches);
-		foreach ($matches as $m)
-		{
-			#echo $m;
-			$code = preg_replace("/\[cc[^\]]*\]\s*/is", '', $m);
-			$code = preg_replace("/\s*\[\/cc\]/", '', $code);
-			$code = preg_replace ("/^/m", "    ", $code);
-			$content = str_replace($m, $code, $content);
-		}
+		preg_match_all('@\[cc[^\]]*\].+?\[\/cc\]@is', $content, $matches);
+		foreach ($matches as $ma)
+			foreach ($ma as $m)
+			{
+				#echo $m;
+				$code = preg_replace("/\[cc[^\]]*\]\s*/is", "", $m);
+				$code = preg_replace("/\s*\[\/cc\]/", "", $code);
+				$code = preg_replace ("/^/m", "    ", $code);
+				$content = str_replace($m, "\n\n".$code."\n\n", $content);
+			}
 		
 		return $content;
 	}
@@ -158,7 +160,7 @@ class WordpressToJekyll {
 			// we do not include mail addresses $cur["meta"]["comment_author_email"] = (string)$comment->comment_author_email;
 			$cur["meta"]["link"] = (string)$comment->comment_author_url;
 			$cur["meta"]["date"] = (string)$comment->comment_date;
-			$cur["meta"]["comment"] = (string)$comment->comment_content;
+			$cur["meta"]["comment"] = $this->_process_content((string)$comment->comment_content);
 			$cur["comment_approved"] = (string)$comment->comment_approved;
 			$cur["content"] = "";
 			$c[] = $cur;
@@ -177,6 +179,7 @@ class WordpressToJekyll {
 		
 		$page['filename'] = $wp->post_name;
 		$page['id'] = $wp->post_id;
+		// the following line is just for the records. comments for pages seems to make no sense in jekyll?
 		$page['comments'] = $this->_process_comments ($wp->comment);
 		$page['parent'] = $wp->post_parent;
 		$page['meta']['layout'] = $this->_layout_page;
@@ -227,7 +230,7 @@ class WordpressToJekyll {
 			$wp->post_name
 		);
 		$post['comments'] = $this->_process_comments ($wp->comment);
-		$post['post_id'] = sprintf('%s/%s',
+		$post['post_id'] = sprintf('/%s/%s',
 			date('Y/m/d', strtotime($wp->post_date)),
 			$wp->post_name
 		);
