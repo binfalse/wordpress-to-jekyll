@@ -155,9 +155,9 @@ class WordpressToJekyll {
 			{
 				#var_dump ($m);
 				#echo "\n\n";
-				$code = preg_replace("/\[cc[^\]]*lang=['\"]([^\"']+)['\"][^\]]*\]\s*/is", '~~~~~~~~~~~~~~~~ $1'."\n", $m);
-				$code = preg_replace("/\[cc[^\]]*\]\s*/is", '~~~~~~~~~~~~~~~~'."\n", $code);
-				$code = preg_replace("/\s*\[\/cc\]/", "\n~~~~~~~~~~~~~~~~", $code);
+				$code = preg_replace("/\[cc[^\]]*lang=['\"]([^\"']+)['\"][^\]]*\]\s*/is", '{% highlight $1 %}'."\n", $m);
+				$code = preg_replace("/\[cc[^\]]*\]\s*/is", '{% highlight bash %}'."\n", $code);
+				$code = preg_replace("/\s*\[\/cc\]/", "\n{% endhighlight %}", $code);
 				#$code = preg_replace ("/^/m", "    ", $code);
 				$content = str_replace($m, "\n\n".$code."\n\n", $content);
 			}
