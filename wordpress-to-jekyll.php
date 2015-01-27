@@ -146,22 +146,25 @@ class WordpressToJekyll {
 		$content = str_replace("\\", '\\\\', $content);
 		$content = str_replace("<!--more-->", '', $content);
 		# codecolorer
-		$content = str_replace("[cci]", '`', $content);
-		$content = str_replace("[/cci]", '`', $content);
+		$content = str_replace("[cci]", ' `', $content);
+		$content = str_replace("[/cci]", '` ', $content);
 		# multiline code
 		preg_match_all('@\[cc[^\]]*\].+?\[\/cc\]@is', $content, $matches);
 		foreach ($matches as $ma)
 			foreach ($ma as $m)
 			{
-				#echo $m;
-				$code = preg_replace("/\[cc[^\]]*\]\s*/is", "", $m);
-				$code = preg_replace("/\s*\[\/cc\]/", "", $code);
-				$code = preg_replace ("/^/m", "    ", $code);
+				#var_dump ($m);
+				#echo "\n\n";
+				$code = preg_replace("/\[cc[^\]]*lang=['\"]([^\"']+)['\"][^\]]*\]\s*/is", '~~~~~~~~~~~~~~~~ $1'."\n", $m);
+				$code = preg_replace("/\[cc[^\]]*\]\s*/is", '~~~~~~~~~~~~~~~~'."\n", $code);
+				$code = preg_replace("/\s*\[\/cc\]/", "\n~~~~~~~~~~~~~~~~", $code);
+				#$code = preg_replace ("/^/m", "    ", $code);
 				$content = str_replace($m, "\n\n".$code."\n\n", $content);
 			}
 		
 		# latex
-		
+		$content = str_replace("[latex]", '$$', $content);
+		$content = str_replace("[/latex]", '$$', $content);
 		
 		
 		return $content;
