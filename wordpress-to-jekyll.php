@@ -275,7 +275,7 @@ class WordpressToJekyll {
 
 		if ( ! empty($tags))
 			$post['meta']['tags'] = $tags;
-		if ( ! empty($cags))
+		if ( ! empty($cats))
 			$post['meta']['categories'] = $cats;
 		
 		if ($wp->status == "draft")
