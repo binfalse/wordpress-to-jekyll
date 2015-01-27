@@ -166,6 +166,9 @@ class WordpressToJekyll {
 		$content = str_replace("[latex]", '$$', $content);
 		$content = str_replace("[/latex]", '$$', $content);
 		
+		# images
+		$content = preg_replace('@\[caption[^\]]*align="([^"]*)"[^\]]*\]<a[^>]*><img[^/]*src="([^"]+)"[^/]*/></a>([^\[]*)\[/caption\]@is', '{% include image.html align="$1" img="$2" title="$3" caption="$3" %}', $content);
+		
 		
 		return $content;
 	}
