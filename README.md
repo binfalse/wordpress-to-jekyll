@@ -6,7 +6,10 @@ It will pull out the title and tags from posts, along with the main post content
 
 This will ensure if you're moving from Wordpress to Jekyll, your old links will work so long as you include the correct permalink structure in your `_config.yml` file.
 
-**Requires PHP 5.3**
+## Dependencies
+* Requires PHP 5.3
+* you need the [static comments plugin](https://github.com/mpalmer/jekyll-static-comments) in your jekyll installation for the comments feature
+* for the images you need another plugin. tba.
 
 ## Install
 
