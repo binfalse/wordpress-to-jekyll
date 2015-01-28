@@ -386,13 +386,16 @@ EOT;
 	
 	protected function _write_rewrite ()
 	{
-		$content = "";
+		$contentApache = "";
+		$contentNginx = "location / {\n";
 		foreach ($this->_linkrewrite as $old => $new)
 		{
-			$content .= "RewriteRule ".substr ($old, 1)."(.*) ".$new."$1 [R=301,NC]\n";
+			$contentApache .= "RewriteRule ".substr ($old, 1)."(.*) ".$new."$1 [R=301,NC]\n";
+			$contentNginx .= "\trewrite ".substr ($old, 1)."(.*) ".$new."$1 redirect;\n";
 		}
-		
-		file_put_contents($this->_rewrite_file, $content);
+		$contentNginx .= "}\n";
+		file_put_contents($this->_rewrite_file.".apache", $contentApache);
+		file_put_contents($this->_rewrite_file.".nginx", $contentNginx);
 	}
 	
 
