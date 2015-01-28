@@ -135,6 +135,25 @@ class WordpressToJekyll {
 		$wp = $item->children($namespaces['wp']);
 		
 		$this->_write_attachment ($wp->attachment_url);
+		
+		$baseUrl = str_replace (basename ($wp->attachment_url), "", $wp->attachment_url);
+		
+		foreach ($wp->postmeta as $postmeta)
+		{
+			$wppm = $postmeta->children($namespaces['wp']);
+			//echo ((string)$wppm->meta_key)."\n";
+			if ("_wp_attachment_metadata" == (string)$wppm->meta_key)
+			{
+				$meta = unserialize ((string)$wppm->meta_value);
+				//print_r($meta);
+				//echo str_replace (basename ($wp->attachment_url), "", $wp->attachment_url) ."\n";
+				foreach ($meta["sizes"] as $size)
+				{
+					$this->_write_attachment ($baseUrl.$size["file"]);
+				}
+			}
+		}
+		
 	}
 	
 	protected function _process_content ($content)
@@ -167,7 +186,7 @@ class WordpressToJekyll {
 		$content = str_replace("[/latex]", '$$', $content);
 		
 		# images
-		$content = preg_replace('@\[caption[^\]]*align="([^"]*)"[^\]]*\]<a[^>]*><img[^/]*src="([^"]+)"[^/]*/></a>([^\[]*)\[/caption\]@is', '{% include image.html align="$1" img="$2" title="$3" caption="$3" %}', $content);
+		$content = preg_replace('@\[caption[^\]]*align="([^"]*)"[^\]]*\]<a[^>]*href="([^"]*)"[^>]*><img[^/]*src="([^"]+)"[^/]*/></a>([^\[]*)\[/caption\]@is', '{% include image.html align="$1" link="$2" img="$3" title="$4" caption="$4" %}', $content);
 		
 		
 		return $content;
