@@ -1,2 +1,2 @@
 RewriteEngine on
-RewriteRule ^wp-content/(.*)$ /assets/media/wp-content/$1 [R,NC]
+RewriteRule ^wp-content/(.*)$ /assets/media/wp-content/$1 [R=301,NC]

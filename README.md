@@ -30,6 +30,7 @@ This will create the following directories:
 * `draft_posts`: directory with all unpublished posts
 * `draft_comments`: directory with all unpublished comments
 * `draft_pages`: directory with all unpublished pages
+* `url_rewrite`: a file containing optional `.htaccess` rewrite rules that might help maintaining link structures
 
 I do not care about the unpublished things, it's up to you whether you finalise them or put it in a `_drafts` directory or whatever..
 

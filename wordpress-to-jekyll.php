@@ -25,15 +25,19 @@ class WordpressToJekyll {
 
 	protected $_items;
 	protected $_blogurls;
+	
+	protected $_linkrewrite;
 
 	protected $_yaml;
 
-	public function __construct($wordpress_xml_file, YamlDumperInterface $yaml, $posts, $pages, $attachments, $draft_posts, $draft_pages, $comments, $draft_comments, $blogurls)
+	public function __construct($wordpress_xml_file, YamlDumperInterface $yaml, $posts, $pages, $attachments, $draft_posts, $draft_pages, $comments, $draft_comments, $blogurls, $rewrite_file)
 	{
 		$this->_export_file = $wordpress_xml_file;
 
 		$this->_load_items();
 		$this->_blogurls = $blogurls;
+		
+		$this->_linkrewrite = array ();
 
 		$this->_yaml = $yaml;
 		
@@ -44,6 +48,7 @@ class WordpressToJekyll {
 		$this->_draft_pages_dir = rtrim($draft_pages, '/');
 		$this->_comments_dir = rtrim($comments, '/');
 		$this->_draft_comments_dir = rtrim($draft_comments, '/');
+		$this->_rewrite_file = rtrim($rewrite_file);
 	}
 
 	protected function _setup_dirs()
@@ -107,6 +112,8 @@ class WordpressToJekyll {
 			if (count ($page["comments"]))
 				$this->_write_comments($page["comments"], $page['post_id']);
 		}
+		
+		$this->_write_rewrite();
 	}
 	
 	protected function _get_page_path ($page, $pages)
@@ -160,12 +167,12 @@ class WordpressToJekyll {
 	{
 	
 		# site specific stuff
-		$content = str_replace ($this->_blogurls, "{{ site.url }}", $content);
+		$content = str_replace ($this->_blogurls, "", $content);
 		
 		$content = str_replace("\\", '\\\\', $content);
 		$content = str_replace("<!--more-->", '', $content);
 		# codecolorer
-		$content = str_replace("[cci]", ' `', $content);
+		$content = preg_replace("/\[cci[^\]]*\]/", ' `', $content);
 		$content = str_replace("[/cci]", '` ', $content);
 		# multiline code
 		preg_match_all('@\[cc[^\]]*\].+?\[\/cc\]@is', $content, $matches);
@@ -176,6 +183,7 @@ class WordpressToJekyll {
 				#echo "\n\n";
 				$code = preg_replace("/\[cc[^\]]*lang=['\"]([^\"']+)['\"][^\]]*\]\s*/is", '{% highlight $1 %}'."\n", $m);
 				$code = preg_replace("/\[cc[^\]]*\]\s*/is", '{% highlight bash %}'."\n", $code);
+				$code = str_replace("rsplus", 'r', $code);
 				$code = preg_replace("/\s*\[\/cc\]/", "\n{% endhighlight %}", $code);
 				#$code = preg_replace ("/^/m", "    ", $code);
 				$content = str_replace($m, "\n\n".$code."\n\n", $content);
@@ -303,7 +311,15 @@ class WordpressToJekyll {
 		if ($wp->status == "draft")
 			$post['draft'] = TRUE;
 		else
+		{
 			$post['draft'] = FALSE;
+		
+			$oldlink = sprintf('/%s/%s',
+			date('Y/m', strtotime($wp->post_date)),
+			$wp->post_name
+			);
+			$this->_linkrewrite[$oldlink] = $post['post_id'];
+		}
 		
 		$content = $item->children($namespaces['content']);
 
@@ -367,6 +383,18 @@ EOT;
 			file_put_contents($target, $formatted);
 		}
 	}
+	
+	protected function _write_rewrite ()
+	{
+		$content = "";
+		foreach ($this->_linkrewrite as $old => $new)
+		{
+			$content .= "RewriteRule ".substr ($old, 1)."(.*) ".$new."$1 [R=301,NC]\n";
+		}
+		
+		file_put_contents($this->_rewrite_file, $content);
+	}
+	
 
 	protected function _write_attachment($attachment_link)
 	{
@@ -423,8 +451,9 @@ $attachments = (isset($argv[4])) ? $argv[4] : getcwd().'/attachments';
 $draft_posts = (isset($argv[5])) ? $argv[5] : getcwd().'/draft_posts';
 $draft_pages = (isset($argv[6])) ? $argv[6] : getcwd().'/draft_pages';
 $comments = (isset($argv[7])) ? $argv[7] : getcwd().'/comments';
-$draft_comments = (isset($argv[7])) ? $argv[7] : getcwd().'/draft_comments';
+$draft_comments = (isset($argv[8])) ? $argv[8] : getcwd().'/draft_comments';
+$rewrite_file = (isset($argv[9])) ? $argv[9] : getcwd().'/url_rewrite';
 
 
-$convert = new WordpressToJekyll($file, new YamlDumper, $posts, $pages, $attachments, $draft_posts, $draft_pages, $comments, $draft_comments, $blogurls);
+$convert = new WordpressToJekyll($file, new YamlDumper, $posts, $pages, $attachments, $draft_posts, $draft_pages, $comments, $draft_comments, $blogurls, $rewrite_file);
 $convert->convert();
